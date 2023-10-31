@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\LoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,10 +19,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', LoginController::class);
 //todo: setup forgot password functionality
 
-//Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//    return $request->user();
-//});
-
-Route::group(['middleware'=>'auth:sanctum'], function (){
-   //all Contact Model routes
+Route::group(['middleware' => 'auth:sanctum'], function () {
+    //all Contact Model routes
+    Route::get('/contacts', [ContactController::class, 'index']);
+    Route::post('/add', [ContactController::class, 'store']);
+    Route::get('/show', [ContactController::class, 'show']);
+    Route::put('/update', [ContactController::class, 'update']);
+    Route::delete('/delete/{id}', [ContactController::class, 'destroy']);
+    Route::get('/search_contacts', [ContactController::class, 'filter']);
 });
