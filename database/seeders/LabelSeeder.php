@@ -18,7 +18,9 @@ class LabelSeeder extends Seeder
 
         foreach ($labels as $label) {
             DB::table('labels')->insert([
-                'label' => Str::title($label)
+                'label' => Str::lower($label),
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
         }
     }

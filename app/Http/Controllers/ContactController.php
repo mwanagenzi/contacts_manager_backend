@@ -39,21 +39,31 @@ class ContactController extends Controller
             'label' => 'required|string'
         ]);
 
-        $label = Label::query()->where('label', '=', Str::lower($request->label));
+        $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        logger($label->id);
 
-        $contact = Contact::create([
-            'first_name' => $request->first_name,
-            'surname' => $request->surname,
-            'phone' => $request->phone,
-            'secondary_phone' => $request->secondary_phone,
-            'email' => $request->email,
-            'label_id' => $label->id,
-        ]);
+        try {
+            $contact = Contact::create([
+                'first_name' => $request->first_name,
+                'surname' => $request->surname,
+                'phone' => $request->phone,
+                'secondary_phone' => $request->secondary_phone,
+                'email' => $request->email,
+                'label_id' => $label->id,
+            ]);
+
+        } catch (\Exception $exception) {
+            logger($exception);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to store contact data. Kindly check your data format and try again later',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Contact ' . $contact->firstname . '\'s details stored successfully',
-            'data' => json_encode($contact)
+            'data' => $contact
         ]);
     }
 
@@ -92,9 +102,8 @@ class ContactController extends Controller
             'label' => 'required|string'
         ]);
 
-        logger("At update");
-
-        $label = Label::query()->where('label', '=', Str::lower($request->label));
+        $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        logger($label);
 
         try {
             $contact = Contact::updateOrCreate([
@@ -115,7 +124,7 @@ class ContactController extends Controller
         }
         return response()->json([
             'success' => true,
-            'message' => '' . $contact . '\'s details updated successfully',
+            'message' => '' . $contact->first_name . '\'s details updated successfully',
             'data' => $contact
         ]);
 

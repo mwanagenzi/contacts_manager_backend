@@ -25,6 +25,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/add', [ContactController::class, 'store']);
     Route::get('/show', [ContactController::class, 'show']);
     Route::post('/update', [ContactController::class, 'update']);
-    Route::get('/delete', [ContactController::class, 'delete']);
+    Route::get('/delete/{id}', [ContactController::class, 'destroy']);
 
 });
