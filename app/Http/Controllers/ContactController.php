@@ -17,7 +17,6 @@ class ContactController extends Controller
     public function index()
     {
         $contacts = Contact::all();
-        logger($contacts);
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $contacts->count() . ' contacts',
@@ -40,7 +39,6 @@ class ContactController extends Controller
         ]);
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
-        logger($label->id);
 
         try {
             $contact = Contact::create([
@@ -103,7 +101,6 @@ class ContactController extends Controller
         ]);
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
-        logger($label);
 
         try {
             $contact = Contact::updateOrCreate([
@@ -149,5 +146,32 @@ class ContactController extends Controller
             'success' => true,
             'message' => 'Deleted contact\'s details successfully',
         ]);
+    }
+
+    public function filter(Request $request)
+    {
+        $request->validate([
+            'searchTerm' => 'required|string'
+        ]);
+
+        try {
+            $label = Label::query()->where('label', '=', Str::lower($request->searchTerm))->first();
+            $contacts = Contact::query()->select()->where('label_id', '=', $label->id)->get();
+
+        } catch (\Exception $exception) {
+            logger($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to retrieve contacts with such label'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Found ' . $contacts->count() . ' contacts',
+            'data' => $contacts
+        ]);
+
     }
 }
