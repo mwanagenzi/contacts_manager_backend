@@ -17,7 +17,6 @@ return new class extends Migration {
             $table->string('phone');
             $table->string('secondary_phone');
             $table->string('email')->unique();
-            $table->foreignId('label_id')->constrained('labels');
             $table->timestamps();
         });
     }
