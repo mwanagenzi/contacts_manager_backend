@@ -35,7 +35,7 @@ class LoginController extends Controller
             'success' => true,
             'message' => 'Logged in successfully',
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'datum' => 'User data',
+            'datum' => $user,
         ]);
 
     }
