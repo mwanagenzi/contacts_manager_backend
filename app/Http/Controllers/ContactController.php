@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\Label;
 use App\Transformers\ContactTransformer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Fractalistic\ArraySerializer;
 
@@ -20,7 +21,7 @@ class ContactController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $contacts->count() . ' contacts',
-            'data' => $contacts,
+            'data' => fractal($contacts,ContactTransformer::class,ArraySerializer::class)->withResourceName('data') ,
         ]);
     }
 
@@ -29,16 +30,26 @@ class ContactController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'first_name' => 'required|string',
-            'surname' => 'string',
-            'phone' => 'required|string',
-            'secondary_phone' => 'string',
-            'email' => 'required|email',
-            'label' => 'required|string'
-        ]);
+        try {
+            $request->validate([
+                'first_name' => 'required|string',
+                'surname' => 'string',
+                'phone' => 'required|string',
+                'secondary_phone' => 'string|nullable',
+                'email' => 'required|email',
+                'label' => 'required|string',
+                'image' => 'image|nullable|max:1999'
+            ]);
+        } catch (\Exception $e) {
+            logger($e);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to store contact data. Kindly check your data format and try again later',
+            ]);
+        }
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        $image = self::setUpTheFrontImages($request);
 
         try {
             $contact = Contact::create([
@@ -48,13 +59,14 @@ class ContactController extends Controller
                 'secondary_phone' => $request->secondary_phone,
                 'email' => $request->email,
                 'label_id' => $label->id,
+                'image' => $image
             ]);
 
         } catch (\Exception $exception) {
             logger($exception);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to store contact data. Kindly check your data format and try again later',
+                'message' => 'Unable to store contact data. Check your data format and try again.',
             ]);
         }
 
@@ -64,6 +76,58 @@ class ContactController extends Controller
             'data' => $contact
         ]);
     }
+
+    public static function setUpTheFrontImages(Request $request): ?string
+    {
+        if ($request->has('image')) {
+
+            logger("has image");
+
+            if (preg_match('/^data:image\/(\w+);base64,/', $request->image, $matches)) {
+                logger("it's a base64 string image...");
+                $image_type = Str::lower($matches[1]);
+
+                // Map the image type to a file extension.
+                $extensions = [
+                    'jpeg' => 'jpg',
+                    'jpg' => 'jpg',
+                    'png' => 'png',
+                    // Add more image types and extensions as needed.
+                ];
+                $extension = $extensions[$image_type];
+
+                if (empty($extension)) {
+                    $extension = 'png';
+                }
+
+                $image = Str::slug($request->first_name, '_') . '.' . $extension;
+                $image_data = base64_decode(substr($request->image, strpos($request->image, ',') + 1));
+                Storage::disk('public')->put('images/' . $image, $image_data);
+
+                return $image;
+            }
+
+            if ($request->hasFile('image')) {
+                logger("it's an image...");
+
+                $extension = $request->file('image')->extension();
+                $image = Str::slug($request->first_name, '_') . '.' . $extension;
+                $request->file('image')->storeAs(
+                    'images',
+                    $image,
+                    'public'
+                );
+
+                return $image;
+            }
+        }
+
+        logger("neither base 64 nor image file...");
+
+        return null;
+
+    }
+
 
     /**
      * Display the specified resource.

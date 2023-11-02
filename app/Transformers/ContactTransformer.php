@@ -2,6 +2,7 @@
 
 namespace App\Transformers;
 
+use App\Models\Contact;
 use League\Fractal\TransformerAbstract;
 
 class ContactTransformer extends TransformerAbstract
@@ -15,6 +16,7 @@ class ContactTransformer extends TransformerAbstract
             'phone' => $contact->phone,
             'secondary_phone' => $contact->secondary_phone,
             'email' => $contact->email,
+            'image' => secure_asset("storage/images/" . $contact->image),
         ];
     }
 }
