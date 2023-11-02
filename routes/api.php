@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('login', LoginController::class);
+Route::get('login', LoginController::class);
 //todo: setup forgot password functionality
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
