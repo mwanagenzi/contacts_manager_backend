@@ -24,7 +24,6 @@ class LoginController extends Controller
         logger($user);
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            logger($user);
             return response()->json([
                 'success' => false,
                 'message' => 'Provided credentials are incorrect',

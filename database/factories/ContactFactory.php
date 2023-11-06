@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Contact>
@@ -22,7 +23,9 @@ class ContactFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'secondary_phone' => fake()->phoneNumber(),
             'email' => fake()->safeEmail(),
-            'label_id' => fake()->randomDigitNotZero()
+            'label_id' => fake()->randomDigitNotZero(),
+            'image' => Str::lower(fake()->firstName . '.png'),
+            'group_id' => 1
         ];
     }
 }

@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\ContactGroup;
 use App\Models\Group;
+use App\Transformers\ContactGroupTransformer;
 use App\Transformers\ContactTransformer;
+use App\Transformers\GroupTransformer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use League\Fractal\Serializer\ArraySerializer;
 
 class ContactGroupController extends Controller
 {
@@ -17,11 +21,15 @@ class ContactGroupController extends Controller
     public function index()
     {
         //todo: retrieve all groups along with their contacts
-        $contactGroups = ContactGroup::all()->groupBy('group_id');
+        $contactGroups = ContactGroup::all();
+        $groups = Group::all();
         return response()->json([
             'success' => true,
-            'message' => 'Found ' . $contactGroups->count() . ' contact groups',
-            'data' => $contactGroups
+            'message' => 'Found ' . $groups->count() . ' contact groups',
+            'group_count' => $groups->count(),
+//            'data' => fractal($contactGroups, ContactGroupTransformer::class, ArraySerializer::class)
+//            'data' => $contactGroups
+            'data' => fractal($groups, GroupTransformer::class, ArraySerializer::class)->withResourceName('data')
         ]);
     }
 
