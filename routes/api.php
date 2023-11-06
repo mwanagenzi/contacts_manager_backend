@@ -24,13 +24,13 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::post('/add', [ContactController::class, 'store']);
     Route::get('/show', [ContactController::class, 'show']);
-    Route::put('/update', [ContactController::class, 'update']);
+    Route::post('/update', [ContactController::class, 'update']);
     Route::delete('/delete/{id}', [ContactController::class, 'destroy']);
     Route::get('/search_contacts', [ContactController::class, 'filter']);
 
     //ContactGroups routes
     Route::get('/contact_groups', [\App\Http\Controllers\ContactGroupController::class, 'index']);
     Route::post('/add_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'store']);
-    Route::put('/update_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'update']);
+    Route::post('/update_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'update']);
     Route::get('/delete_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'destroy']);
 });
