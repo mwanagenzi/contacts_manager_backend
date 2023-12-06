@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\Group;
 use App\Models\Label;
 use App\Transformers\ContactTransformer;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class ContactController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $contacts->count() . ' contacts',
-            'data' => fractal($contacts,ContactTransformer::class,ArraySerializer::class)->withResourceName('data') ,
+            'data' => fractal($contacts, ContactTransformer::class, ArraySerializer::class)->withResourceName('data'),
         ]);
     }
 
@@ -38,7 +39,8 @@ class ContactController extends Controller
                 'secondary_phone' => 'string|nullable',
                 'email' => 'required|email',
                 'label' => 'required|string',
-                'image' => 'image|nullable|max:1999'
+                'image' => 'image|nullable|max:1999',
+                'group_name' => 'string|nullable'
             ]);
         } catch (\Exception $e) {
             logger($e);
@@ -49,6 +51,10 @@ class ContactController extends Controller
         }
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
+            Group::create([
+                'name' => Str::lower($request->group_name)
+            ])->id;
         $image = self::setUpTheFrontImages($request);
 
         try {
@@ -59,8 +65,11 @@ class ContactController extends Controller
                 'secondary_phone' => $request->secondary_phone,
                 'email' => $request->email,
                 'label_id' => $label->id,
-                'image' => $image
+                'image' => $image,
+                'group_id' => $group_id
             ]);
+
+            //todo: sort out group_id issue
 
         } catch (\Exception $exception) {
             logger($exception);
