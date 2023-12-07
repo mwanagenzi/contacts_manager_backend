@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\Group;
 use App\Models\Label;
 use App\Transformers\ContactTransformer;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class ContactController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $contacts->count() . ' contacts',
-            'data' => fractal($contacts,ContactTransformer::class,ArraySerializer::class)->withResourceName('data') ,
+            'data' => fractal($contacts, ContactTransformer::class, ArraySerializer::class)->withResourceName('data'),
         ]);
     }
 
@@ -38,7 +39,8 @@ class ContactController extends Controller
                 'secondary_phone' => 'string|nullable',
                 'email' => 'required|email',
                 'label' => 'required|string',
-                'image' => 'image|nullable|max:1999'
+                'image' => 'image|nullable|max:1999',
+                'group_name' => 'string|nullable'
             ]);
         } catch (\Exception $e) {
             logger($e);
@@ -49,6 +51,10 @@ class ContactController extends Controller
         }
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
+            Group::create([
+                'name' => Str::lower($request->group_name)
+            ])->id;
         $image = self::setUpTheFrontImages($request);
 
         try {
@@ -59,7 +65,8 @@ class ContactController extends Controller
                 'secondary_phone' => $request->secondary_phone,
                 'email' => $request->email,
                 'label_id' => $label->id,
-                'image' => $image
+                'image' => $image,
+                'group_id' => $group_id
             ]);
 
         } catch (\Exception $exception) {
@@ -124,7 +131,7 @@ class ContactController extends Controller
 
         logger("neither base 64 nor image file...");
 
-        return null;
+        return "no_image.png";
 
     }
 
@@ -159,22 +166,31 @@ class ContactController extends Controller
             'first_name' => 'required|string',
             'surname' => 'string',
             'phone' => 'required|string',
-            'secondary_phone' => 'string',
+            'secondary_phone' => 'string|nullable',
             'email' => 'required|email',
-            'label' => 'required|string'
+            'label' => 'required|string',
+            'group_name' => 'string|nullable',
+            'image' => 'image|nullable|max:1999'
         ]);
 
         $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
+        $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
+            Group::create([
+                'name' => Str::lower($request->group_name)
+            ])->id;
+        $image = self::setUpTheFrontImages($request);
 
         try {
             $contact = Contact::updateOrCreate([
                 'email' => $request->email,
             ], [
                 'first_name' => $request->first_name,
-                'surname' => $request->surname,
+                'surname' => $request->surname ?? '',
                 'phone' => $request->phone,
                 'secondary_phone' => $request->secondary_phone,
                 'label_id' => $label->id,
+                'image' => $image,
+                'group_id' => $group_id
             ]);
         } catch (\Exception $exception) {
             logger($exception);
@@ -197,8 +213,15 @@ class ContactController extends Controller
     public function destroy($id)
     {
         try {
-            $contact = Contact::findOrFail($id);
-            $contact->delete();
+            $contact = Contact::find($id);
+            if ($contact) {
+                $contact->delete();
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact\'s data not found',
+                ]);
+            }
         } catch (\Exception $e) {
             logger($e);
             return response()->json([
@@ -237,5 +260,24 @@ class ContactController extends Controller
             'data' => $contacts
         ]);
 
+    }
+
+    public function unallocatedContacts()
+    {
+        $default_group = Contact::select()->where('group_id', '=', 1)->get();
+
+        if ($default_group != null) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Found ' . $default_group->count() . ' contacts',
+                'data' => fractal($default_group, ContactTransformer::class, ArraySerializer::class)
+//                'data' => $default_group
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to retrieve unallocated contacts. Try again later.'
+            ]);
+        }
     }
 }
