@@ -3,6 +3,7 @@
 namespace App\Transformers;
 
 use App\Models\Contact;
+use App\Models\Group;
 use League\Fractal\TransformerAbstract;
 
 class ContactTransformer extends TransformerAbstract
@@ -17,6 +18,8 @@ class ContactTransformer extends TransformerAbstract
             'secondary_phone' => $contact->secondary_phone,
             'email' => $contact->email,
             'image' => secure_asset("storage/images/" . $contact->image),
+            'group_id' => $contact->group_id,
+            'group_name' => Group::where('id', '=', $contact->group_id)->first()->name
         ];
     }
 }

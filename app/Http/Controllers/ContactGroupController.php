@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Contact;
 use App\Models\ContactGroup;
 use App\Models\Group;
-use App\Transformers\ContactGroupTransformer;
-use App\Transformers\ContactTransformer;
 use App\Transformers\GroupTransformer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -21,8 +20,7 @@ class ContactGroupController extends Controller
     public function index()
     {
         //todo: retrieve all groups along with their contacts
-        $contactGroups = ContactGroup::all();
-        $groups = Group::all();
+        $groups = Group::whereNot('id', '=', 1)->get();
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $groups->count() . ' contact groups',
@@ -106,16 +104,16 @@ class ContactGroupController extends Controller
 
         try {
             foreach ($request->contact_ids as $contact_id) {
-                ContactGroup::updateOrCreate([
-                    'group_id' => $request->group_id,
-                    'contact_id' => $contact_id
-                ]);
+                Contact::where('id', '=', $contact_id)
+                    ->update([
+                        'group_id' => 1
+                    ]);
             }
         } catch (\Exception $e) {
             logger($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to store the data. Try again later.'
+                'message' => 'Unable to update the group. Try again later.'
             ]);
         }
         return response()->json([
@@ -127,29 +125,39 @@ class ContactGroupController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request)
+    public function destroy($id)
     {
-        try {
-            $request->validate([
-                'group_id' => 'required|integer',
-            ]);
-        } catch (\Exception $e) {
-            logger($e);
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to delete the data. Check your input format then try again.'
-            ]);
-        }
         //todo: delete the group only
         try {
-            DB::table('contact_groups')
-                ->where('group_id', '=', $request->group_id)
+            $group = Group::find($id);
+            if ($group) {
+                $group->delete();
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact\'s data not found',
+                ]);
+            }
+            DB::beginTransaction();
+//            Contact::query()->where('group_id', '=', $id)
+//                ->update([
+//                    'group_id' => 1,
+//                ]);
+
+            DB::table('groups')
+                ->where('id', '=', $id)
                 ->delete();
+
+//            DB::table('contacts')->where('group_id', '=', $id)
+//                ->update(['group_id' => 1]);
+
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollBack();
             logger($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to store the data. Try again later.'
+                'message' => 'Unable to delete the group data. Try again later.'
             ]);
         }
         return response()->json([
