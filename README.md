@@ -9,5 +9,5 @@
 - Run `php artisan migrate: fresh --seed` to create tables and feed them with data.
 - Run `php artisan serve` to start the server application.
 - Install ngrok client on local device to expose local server URL over the internet.
-- Run `ngrok http <local_port>` where "local_port" is the port on the local server address/
+- Run `ngrok http <local_port>` where "local_port" is the port on the local server address.
 - Use the URL in Flutter Application or API client application such as Postman.
