@@ -129,29 +129,34 @@ class ContactGroupController extends Controller
     {
         //todo: delete the group only
         try {
+
+            DB::beginTransaction();
+
             $group = Group::find($id);
             if ($group) {
+
+                DB::table('contacts')->where('group_id', '=', $id)
+                    ->update(['group_id' => 1]);
+
                 $group->delete();
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Group details deleted successfully'
+                ]);
+
             } else {
+
+                DB::commit();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Contact\'s data not found',
                 ]);
             }
-            DB::beginTransaction();
-//            Contact::query()->where('group_id', '=', $id)
-//                ->update([
-//                    'group_id' => 1,
-//                ]);
 
-            DB::table('groups')
-                ->where('id', '=', $id)
-                ->delete();
-
-//            DB::table('contacts')->where('group_id', '=', $id)
-//                ->update(['group_id' => 1]);
-
-            DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             logger($e);
@@ -160,9 +165,6 @@ class ContactGroupController extends Controller
                 'message' => 'Unable to delete the group data. Try again later.'
             ]);
         }
-        return response()->json([
-            'success' => true,
-            'message' => 'Group details deleted successfully'
-        ]);
+
     }
 }
