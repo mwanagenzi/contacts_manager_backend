@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\ContactGroup;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -20,9 +21,8 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         $this->call([
-            LabelSeeder::class,
-            GroupSeeder::class,
-            ContactSeeder::class
+            ContactSeeder::class,
+            ContactGroupSeeder::class,
         ]);
     }
 }

@@ -23,7 +23,6 @@ class ContactFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'secondary_phone' => fake()->phoneNumber(),
             'email' => fake()->safeEmail(),
-            'label_id' => fake()->randomDigitNotZero(),
             'image' => Str::lower(fake()->firstName . '.png'),
         ];
     }

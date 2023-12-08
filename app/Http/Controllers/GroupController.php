@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use League\Fractal\Serializer\ArraySerializer;
 
-class ContactGroupController extends Controller
+class GroupController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -50,18 +50,31 @@ class ContactGroupController extends Controller
             ]);
         }
 
-        $group = Group::create([
-            'name' => Str::lower($request->name),
-        ]);
+        $group = Group::where('name', '=', Str::lower($request->name))->first();
+
+        if ($group != null) {
+            return response()->json([
+                'success' => false,
+                'message' => "That group name exists. Try another."
+            ]);
+        }
 
         try {
+            DB::beginTransaction();
+
+            $new_group = Group::create([
+                'name' => Str::lower($request->name),
+            ]);
+
             foreach ($request->contact_ids as $contact_id) {
                 ContactGroup::create([
-                    'group_id' => $group->id,
+                    'group_id' => $new_group->id,
                     'contact_id' => $contact_id
                 ]);
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollBack();
             logger($e);
             return response()->json([
                 'success' => false,
@@ -70,7 +83,7 @@ class ContactGroupController extends Controller
         }
         return response()->json([
             'success' => true,
-            'message' => 'Contact group ' . $group->name . '\'s data stored successfully.'
+            'message' => 'Contact group ' . $new_group->name . '\'s data stored successfully.'
         ]);
 
     }
@@ -134,6 +147,7 @@ class ContactGroupController extends Controller
                 DB::beginTransaction();
 
                 ContactGroup::where('group_id', '=', $group->id)->delete();
+                Group::where('id', '=', $group->id)->delete();
 
                 DB::commit();
                 return response()->json([
@@ -144,7 +158,7 @@ class ContactGroupController extends Controller
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Contact\'s data not found',
+                    'message' => 'Group\'s data not found',
                 ]);
             }
 

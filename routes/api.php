@@ -30,10 +30,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/unallocated_contacts', [ContactController::class, 'unallocatedContacts']);
 
     //ContactGroups routes
-    Route::get('/contact_groups', [\App\Http\Controllers\ContactGroupController::class, 'index']);
-    Route::post('/add_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'store']);
-    Route::post('/update_contact_group', [\App\Http\Controllers\ContactGroupController::class, 'update']);
-    Route::get('/delete_contact_group/{id}', [\App\Http\Controllers\ContactGroupController::class, 'destroy']);
+    Route::get('/contact_groups', [\App\Http\Controllers\GroupController::class, 'index']);
+    Route::post('/add_contact_group', [\App\Http\Controllers\GroupController::class, 'store']);
+    Route::post('/update_contact_group', [\App\Http\Controllers\GroupController::class, 'update']);
+    Route::get('/delete_contact_group/{id}', [\App\Http\Controllers\GroupController::class, 'destroy']);
 
     //Unallocated contacts
 

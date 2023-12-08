@@ -231,7 +231,9 @@ class ContactController extends Controller
             if ($contact) {
                 DB::beginTransaction();
 
-                ContactGroup::where('contact_id', '=', $contact->id)->delete();
+                $contact_group = ContactGroup::where('contact_id', '=', $contact->id)->first();
+                Group::where('id', '=', $contact_group->id)->delete();
+                $contact_group->delete();
                 $contact->delete();
 
                 DB::commit();
