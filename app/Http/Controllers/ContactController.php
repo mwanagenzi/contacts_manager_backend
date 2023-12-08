@@ -172,7 +172,7 @@ class ContactController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'id' => 'required|int',
+            'id' => 'required|string',
             'first_name' => 'required|string',
             'surname' => 'string',
             'phone' => 'required|string',
