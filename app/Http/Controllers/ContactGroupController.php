@@ -20,7 +20,7 @@ class ContactGroupController extends Controller
     public function index()
     {
         //todo: retrieve all groups along with their contacts
-        $groups = Group::whereNot('id', '=', 1)->get();
+        $groups = Group::all();
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $groups->count() . ' contact groups',
@@ -88,7 +88,6 @@ class ContactGroupController extends Controller
      */
     public function update(Request $request)
     {
-        //todo: store a new collection of contacts in an existing group
         try {
             $request->validate([
                 'group_id' => 'required|integer',
@@ -103,17 +102,17 @@ class ContactGroupController extends Controller
         }
 
         try {
+            DB::beginTransaction();
             foreach ($request->contact_ids as $contact_id) {
-                Contact::where('id', '=', $contact_id)
-                    ->update([
-                        'group_id' => 1
-                    ]);
+                ContactGroup::where('contact_id', '=', $contact_id)->delete();
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollBack();
             logger($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to update the group. Try again later.'
+                'message' => 'Unable to update the group data. Check the server log.'
             ]);
         }
         return response()->json([
@@ -130,27 +129,19 @@ class ContactGroupController extends Controller
         //todo: delete the group only
         try {
 
-            DB::beginTransaction();
-
             $group = Group::find($id);
             if ($group) {
+                DB::beginTransaction();
 
-                DB::table('contacts')->where('group_id', '=', $id)
-                    ->update(['group_id' => 1]);
-
-                $group->delete();
+                ContactGroup::where('group_id', '=', $group->id)->delete();
 
                 DB::commit();
-
                 return response()->json([
                     'success' => true,
-                    'message' => 'Group details deleted successfully'
+                    'message' => 'Group details deleted successfully.'
                 ]);
 
             } else {
-
-                DB::commit();
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Contact\'s data not found',

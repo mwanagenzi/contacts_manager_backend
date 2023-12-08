@@ -25,7 +25,6 @@ class ContactFactory extends Factory
             'email' => fake()->safeEmail(),
             'label_id' => fake()->randomDigitNotZero(),
             'image' => Str::lower(fake()->firstName . '.png'),
-            'group_id' => 1
         ];
     }
 }

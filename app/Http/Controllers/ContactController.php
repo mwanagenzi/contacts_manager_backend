@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\ContactGroup;
 use App\Models\Group;
 use App\Models\Label;
 use App\Transformers\ContactTransformer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Fractalistic\ArraySerializer;
@@ -38,7 +40,6 @@ class ContactController extends Controller
                 'phone' => 'required|string',
                 'secondary_phone' => 'string|nullable',
                 'email' => 'required|email',
-                'label' => 'required|string',
                 'image' => 'image|nullable|max:1999',
                 'group_name' => 'string|nullable'
             ]);
@@ -46,41 +47,49 @@ class ContactController extends Controller
             logger($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to store contact data. Kindly check your data format and try again later',
+                'message' => 'Unable to store contact data. Kindly check your data format and check server log, then try again',
             ]);
         }
 
-        $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
-        $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
-            Group::create([
-                'name' => Str::lower($request->group_name)
-            ])->id;
-        $image = self::setUpTheFrontImages($request);
 
         try {
+            DB::beginTransaction();
+
+            $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
+                Group::create([
+                    'name' => Str::lower($request->group_name)
+                ])->id;
+            $image = self::setUpTheFrontImages($request);
+
             $contact = Contact::create([
+                'phone' => $request->phone,
+                'email' => $request->email,
                 'first_name' => $request->first_name,
                 'surname' => $request->surname,
-                'phone' => $request->phone,
                 'secondary_phone' => $request->secondary_phone,
-                'email' => $request->email,
-                'label_id' => $label->id,
+                'label_id' => fake()->randomDigitNotZero(), //default to "work" label
                 'image' => $image,
-                'group_id' => $group_id
             ]);
 
+            ContactGroup::create([
+                'group_id' => $group_id,
+                'contact_id' => $contact->id
+            ]);
+
+            DB::commit();
         } catch (\Exception $exception) {
+            DB::rollBack();
             logger($exception);
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to store contact data. Check your data format and try again.',
+                'message' => 'Unable to store contact data. Check server log.',
             ]);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Contact ' . $contact->firstname . '\'s details stored successfully',
-            'data' => $contact
+//            'data' => $contact todo:Do you need this data?
         ]);
     }
 
@@ -153,7 +162,7 @@ class ContactController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Found ' . $contact . '\'s details',
-            'data' => json_encode($contact)
+            'data' => fractal($contact, ContactTransformer::class, ArraySerializer::class)
         ]);
     }
 
@@ -163,34 +172,40 @@ class ContactController extends Controller
     public function update(Request $request)
     {
         $request->validate([
+            'id' => 'required|int',
             'first_name' => 'required|string',
             'surname' => 'string',
             'phone' => 'required|string',
             'secondary_phone' => 'string|nullable',
             'email' => 'required|email',
-            'label' => 'required|string',
             'group_name' => 'string|nullable',
             'image' => 'image|nullable|max:1999'
         ]);
 
-        $label = Label::query()->where('label', '=', Str::lower($request->label))->first();
-        $group_id = Group::where('name', '=', Str::lower($request->group_name))->first()->id ??
-            Group::create([
+        $group = Group::where('name', '=', Str::lower($request->group_name))->first();
+
+        if ($group == null) {
+            $group_id = Group::create([
                 'name' => Str::lower($request->group_name)
             ])->id;
+            ContactGroup::create([
+                'group_id' => $group_id,
+                'contact_id' => Contact::where('id', '=', $request->id)->id
+            ]);
+        }
+
         $image = self::setUpTheFrontImages($request);
 
         try {
             $contact = Contact::updateOrCreate([
-                'email' => $request->email,
+                'id' => $request->id,
             ], [
+                'email' => $request->email,
+                'phone' => $request->phone,
                 'first_name' => $request->first_name,
                 'surname' => $request->surname ?? '',
-                'phone' => $request->phone,
                 'secondary_phone' => $request->secondary_phone,
-                'label_id' => $label->id,
                 'image' => $image,
-                'group_id' => $group_id
             ]);
         } catch (\Exception $exception) {
             logger($exception);
@@ -202,7 +217,6 @@ class ContactController extends Controller
         return response()->json([
             'success' => true,
             'message' => '' . $contact->first_name . '\'s details updated successfully',
-            'data' => $contact
         ]);
 
     }
@@ -215,7 +229,12 @@ class ContactController extends Controller
         try {
             $contact = Contact::find($id);
             if ($contact) {
+                DB::beginTransaction();
+
+                ContactGroup::where('contact_id', '=', $contact->id)->delete();
                 $contact->delete();
+
+                DB::commit();
             } else {
                 return response()->json([
                     'success' => false,
@@ -226,7 +245,7 @@ class ContactController extends Controller
             logger($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Contact\'s data not found',
+                'message' => 'Unable to delete the contact. Check server log.',
             ]);
         }
         return response()->json([
@@ -260,24 +279,5 @@ class ContactController extends Controller
             'data' => $contacts
         ]);
 
-    }
-
-    public function unallocatedContacts()
-    {
-        $default_group = Contact::select()->where('group_id', '=', 1)->get();
-
-        if ($default_group != null) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Found ' . $default_group->count() . ' contacts',
-                'data' => fractal($default_group, ContactTransformer::class, ArraySerializer::class)
-//                'data' => $default_group
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to retrieve unallocated contacts. Try again later.'
-            ]);
-        }
     }
 }
